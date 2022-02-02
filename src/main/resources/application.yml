@@ -1,0 +1,3 @@
+## Elasticsearch configs
+elasticsearch:
+  url: "localhost:9200"
