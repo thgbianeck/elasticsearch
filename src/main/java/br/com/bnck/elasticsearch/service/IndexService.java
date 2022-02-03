@@ -3,6 +3,7 @@ package br.com.bnck.elasticsearch.service;
 import br.com.bnck.elasticsearch.helper.Indices;
 import br.com.bnck.elasticsearch.helper.Util;
 import lombok.extern.slf4j.Slf4j;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.indices.CreateIndexRequest;
@@ -36,7 +37,16 @@ public class IndexService {
 
     @PostConstruct
     public void tryToCreateIndex() {
+        recreateIndices(false);
+    }
+
+    public void recreateIndices(final boolean deleteExisting) {
         final String settings = Util.loadAsString("static/es-settings.json");
+
+        if(Objects.isNull(settings)) {
+            log.error("Failed to load index settings");
+            return;
+        }
 
         for(final String indexName: INDICES_TO_CREATE) {
             try{
@@ -44,7 +54,13 @@ public class IndexService {
                         .indices()
                         .exists(new GetIndexRequest(indexName), RequestOptions.DEFAULT);
                 if(indexExists) {
-                    continue;
+                    if(!deleteExisting) {
+                        continue;
+                    }
+                    client.indices().delete(
+                            new DeleteIndexRequest(indexName),
+                            RequestOptions.DEFAULT
+                    );
                 }
 
                 final String mappings = Util.loadAsString("static/mappings/" + indexName + ".json");
